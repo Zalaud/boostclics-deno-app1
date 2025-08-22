@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.140.0/http/server.ts";
+// On n'importe PLUS la fonction "serve" d'ici. C'est maintenant intégré à Deno.
 
 // Notre page HTML de test, très simple.
 const htmlPage = `
@@ -57,6 +57,6 @@ async function handler(req: Request): Promise<Response> {
   });
 }
 
-// On démarre le serveur.
-// LA CORRECTION EST SUR LA LIGNE SUIVANTE : on spécifie le port.
-serve(handler);
+// LA CORRECTION EST ICI : on utilise la fonction native "Deno.serve"
+console.log("Démarrage du serveur avec Deno.serve...");
+Deno.serve(handler);
