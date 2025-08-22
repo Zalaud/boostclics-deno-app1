@@ -58,4 +58,5 @@ async function handler(req: Request): Promise<Response> {
 }
 
 // On démarre le serveur.
+// LA CORRECTION EST SUR LA LIGNE SUIVANTE : on spécifie le port.
 serve(handler);
