@@ -46,9 +46,11 @@ const reactAppHtml = `
           
           useEffect(() => {
               const app = window.Telegram?.WebApp;
-              app.ready();
-              app.expand();
-              setWebApp(app);
+              if (app) {
+                app.ready();
+                app.expand();
+                setWebApp(app);
+              }
               
               async function fetchData() {
                   try {
@@ -106,7 +108,6 @@ const reactAppHtml = `
 </html>
 `;
 
-
 // ====================================================================
 // ===== NOTRE SERVEUR BACKEND (API) =====
 // ====================================================================
@@ -127,6 +128,12 @@ async function handler(req: Request): Promise<Response> {
         }
       `;
       const response = await nhost.graphql.request(GET_TASKS_QUERY);
-      if (response.error) throw new Error(response.error.errors[0].message);
+      if (response.error) {
+          throw new Error(response.error.errors[0].message);
+      }
       
-     
+      return new Response(JSON.stringify(response.data.tasks), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("
