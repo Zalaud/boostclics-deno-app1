@@ -8,7 +8,7 @@ const nhost = new NhostClient({ subdomain, region });
 // --- FIN CONFIGURATION ---
 
 // ====================================================================
-// ===== NOTRE INTERFACE FRONTEND COMPLÈTE (HTML + REACT) =====
+// ===== NOTRE INTERFACE FRONTEND (HTML + REACT) =====
 // ====================================================================
 const reactAppHtml = `
 <!DOCTYPE html>
@@ -35,7 +35,7 @@ const reactAppHtml = `
 <body>
     <div id="root"></div>
 
-        <script type="text/babel">
+    <script type="text/babel">
       const { useState, useEffect } = React;
 
       function App() {
@@ -52,25 +52,30 @@ const reactAppHtml = `
                 setWebApp(app);
               }
               
-              async function fetchData() {
-                  try {
-                      const response = await fetch('/api/get-tasks');
-                      const data = await response.json(); // On lit la réponse dans tous les cas
-                      
-                      if (!response.ok) {
-                          // Si la réponse est une erreur, 'data' contient { error: "message" }
-                          throw new Error(data.error || 'La réponse du réseau n\'était pas bonne.');
-                      }
-
-                      // Si la réponse est OK, 'data' contient la liste des tâches
-                      setTasks(data || []);
-                  } catch (err) {
-                      setError(err.message);
-                  } finally {
-                      setLoading(false);
+              // --- LOGIQUE DE FETCH CORRIGÉE ET SIMPLIFIÉE ---
+              fetch('/api/get-tasks')
+                .then(response => {
+                  if (!response.ok) {
+                    // Si le serveur renvoie une erreur (comme 500), on la gère ici
+                    return response.json().then(errData => {
+                      throw new Error(errData.error || 'Erreur du serveur');
+                    });
                   }
-              }
-              fetchData();
+                  return response.json();
+                })
+                .then(data => {
+                  // Si tout va bien, on met à jour les tâches
+                  setTasks(data || []);
+                })
+                .catch(err => {
+                  // On attrape toutes les erreurs (réseau ou serveur)
+                  setError(err.message);
+                })
+                .finally(() => {
+                  // Dans tous les cas, on arrête de charger
+                  setLoading(false);
+                });
+              // --- FIN DE LA LOGIQUE CORRIGÉE ---
           }, []);
 
           return (
@@ -108,7 +113,7 @@ const reactAppHtml = `
     </script>
 </body>
 </html>
-`; // La ` backtick qui manquait est ici
+`;
 
 // ====================================================================
 // ===== NOTRE SERVEUR BACKEND (API) =====
@@ -153,3 +158,4 @@ async function handler(req: Request): Promise<Response> {
 
 console.log("Démarrage du serveur...");
 Deno.serve(handler);
+         
