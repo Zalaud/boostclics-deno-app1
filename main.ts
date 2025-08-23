@@ -35,7 +35,7 @@ const reactAppHtml = `
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+        <script type="text/babel">
       const { useState, useEffect } = React;
 
       function App() {
@@ -55,11 +55,14 @@ const reactAppHtml = `
               async function fetchData() {
                   try {
                       const response = await fetch('/api/get-tasks');
+                      const data = await response.json(); // On lit la réponse dans tous les cas
+                      
                       if (!response.ok) {
-                          const errData = await response.json();
-                          throw new Error(errData.error || 'La réponse du réseau n\'était pas bonne.');
+                          // Si la réponse est une erreur, 'data' contient { error: "message" }
+                          throw new Error(data.error || 'La réponse du réseau n\'était pas bonne.');
                       }
-                      const data = await response.json();
+
+                      // Si la réponse est OK, 'data' contient la liste des tâches
                       setTasks(data || []);
                   } catch (err) {
                       setError(err.message);
