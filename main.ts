@@ -54,7 +54,6 @@ const reactAppHtml = `
               
               async function fetchData() {
                   try {
-                      // On appelle notre propre API hébergée sur Deno
                       const response = await fetch('/api/get-tasks');
                       if (!response.ok) {
                           const errData = await response.json();
@@ -106,7 +105,7 @@ const reactAppHtml = `
     </script>
 </body>
 </html>
-`;
+`; // La ` backtick qui manquait est ici
 
 // ====================================================================
 // ===== NOTRE SERVEUR BACKEND (API) =====
@@ -136,4 +135,18 @@ async function handler(req: Request): Promise<Response> {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error("
+      console.error("Erreur API /get-tasks:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // Pour toutes les autres URL, on renvoie la page React
+  return new Response(reactAppHtml, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
+console.log("Démarrage du serveur...");
+Deno.serve(handler);
