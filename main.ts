@@ -67,29 +67,32 @@ const reactAppHtml = `
                 app.expand();
                 setWebApp(app);
                 
-                async function initAndFetch() {
+                const initAndFetch = async () => {
                     try {
                         setStatusMessage("Authentification...");
-                        // 1. On appelle notre API d'authentification
                         const authResponse = await fetch('/api/auth-telegram', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ initData: app.initData })
                         });
-                        const authData = await authResponse.json();
-                        if (!authResponse.ok) throw new Error(authData.error || 'Échec de l\'authentification');
 
-                        // 2. On utilise la session reçue pour authentifier le client Nhost
+                        const authData = await authResponse.json();
+                        if (!authResponse.ok) {
+                            throw new Error(authData.error || 'Échec de l\'authentification');
+                        }
+
                         await nhost.auth.setSession(authData.session);
-                        setUser(authData.user); // On stocke les infos de l'utilisateur
+                        setUser(authData.user);
 
                         setStatusMessage("Chargement des tâches...");
-                        // 3. On appelle l'API des tâches en tant qu'utilisateur authentifié
                         const tasksResponse = await fetch('/api/get-tasks', {
                             headers: { 'Authorization': 'Bearer ' + nhost.auth.getAccessToken() }
                         });
+                        
                         const tasksData = await tasksResponse.json();
-                        if (!tasksResponse.ok) throw new Error(tasksData.error || 'Échec du chargement des tâches');
+                        if (!tasksResponse.ok) {
+                            throw new Error(tasksData.error || 'Échec du chargement des tâches');
+                        }
                         
                         setTasks(tasksData || []);
                         setStatusMessage("");
@@ -99,14 +102,14 @@ const reactAppHtml = `
                     } finally {
                         setLoading(false);
                     }
-                }
+                };
                 initAndFetch();
             }, []);
 
             return (
               <div className="p-4 max-w-lg mx-auto">
                 <h1 className="text-3xl font-bold text-blue-400 text-center">BoostClicsBot</h1>
-                {webApp && <p className="mt-4 text-lg text-center">Bienvenue, <span className="font-bold text-yellow-300">{webApp.initDataUnsafe?.user?.first-name || 'Utilisateur'}</span> !</p>}
+                {webApp && <p className="mt-4 text-lg text-center">Bienvenue, <span className="font-bold text-yellow-300">{webApp.initDataUnsafe?.user?.first_name || 'Utilisateur'}</span> !</p>}
                 <div className="mt-8 p-6 bg-gray-800 rounded-xl text-center">
                     <p className="text-xl text-gray-300">Mon Solde</p>
                     <p className="text-5xl font-bold mt-2">{user?.balance ?? 0} <span className="text-2xl text-gray-400">Points</span></p>
@@ -205,10 +208,16 @@ async function handler(req: Request): Promise<Response> {
     try {
       const GET_TASKS_QUERY = `query GetActiveTasks { tasks(where: {status: {_eq: "active"}}) { id, title, description, reward } }`;
       
-      // On doit maintenant passer le token de l'utilisateur pour cette requête
       const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+      if (!accessToken) {
+        // Nhost/Hasura par défaut n'autorise pas les requêtes non authentifiées (rôle 'public')
+        // On doit donc vérifier si on a un token.
+        // On pourrait aussi changer la permission sur Hasura pour autoriser le rôle 'public'.
+        return new Response(JSON.stringify({ error: 'Authentification requise' }), { status: 401 });
+      }
+
       const response = await nhost.graphql.request(GET_TASKS_QUERY, {}, {
-          headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}
+          headers: { 'Authorization': `Bearer ${accessToken}` }
       });
 
       if (response.error) throw new Error(response.error.errors[0].message);
