@@ -1,11 +1,13 @@
 import { serve } from "https://deno.land/std@0.140.0/http/server.ts";
 import { NhostClient } from 'https://esm.sh/@nhost/nhost-js@3';
 
-// --- CONFIGURATION ---
-// On va chercher l'URL de Nhost dans les secrets de Deno Deploy
-const NHOST_BACKEND_URL = Deno.env.get("NHOST_BACKEND_URL");
-const nhost = new NhostClient({ backendUrl: NHOST_BACKEND_URL });
-// --- FIN CONFIGURATION ---
+// --- CONFIGURATION CORRIGÉE ---
+const nhostBackendUrl = Deno.env.get("NHOST_BACKEND_URL");
+// On extrait le sous-domaine de l'URL. Exemple : "jwtnrfwelqbdclayffhq"
+const subdomain = new URL(nhostBackendUrl).hostname.split('.')[0];
+
+const nhost = new NhostClient({ subdomain: subdomain, region: 'eu-central-1' });
+// --- FIN DE LA CORRECTION ---
 
 
 // Le HTML de notre frontend (on le mettra à jour plus tard)
@@ -28,7 +30,6 @@ async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   // --- ROUTEUR D'API ---
-  // Si la requête est pour notre API de tâches
   if (url.pathname === "/api/get-tasks") {
     try {
       const GET_TASKS_QUERY = `
