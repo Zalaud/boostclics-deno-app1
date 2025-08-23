@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.140.0/http/server.ts";
-import { NhostClient } from 'https://cdn.jsdelivr.net/npm/@nhost/nhost-js@3/+esm';
+import { NhostClient } from 'https://esm.sh/@nhost/nhost-js@3';
 
 // --- CONFIGURATION ---
 // On va chercher l'URL de Nhost dans les secrets de Deno Deploy
