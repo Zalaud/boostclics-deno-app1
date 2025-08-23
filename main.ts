@@ -10,14 +10,19 @@ const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const NHOST_ADMIN_SECRET = Deno.env.get("NHOST_ADMIN_SECRET")!;
 // --- FIN CONFIGURATION ---
 
-// Headers CORS pour autoriser Netlify à nous appeler
+// --- HEADERS CORS ---
+// On autorise explicitement l'URL de ton site Netlify et '*' pour les tests.
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Pour le test, on autorise tout
+  'Access-Control-Allow-Origin': '*', // 'https://boostclicsbot11.netlify.app'
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', // On ajoute OPTIONS
 };
+// --- FIN HEADERS CORS ---
+
 
 async function handler(req: Request): Promise<Response> {
-  // Gère la requête preflight CORS
+  // Gère la requête "preflight" CORS avant toute autre logique.
+  // C'est la "demande de permission" du navigateur.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -28,7 +33,8 @@ async function handler(req: Request): Promise<Response> {
   if (url.pathname === "/api/auth-telegram") {
     try {
       const { initData } = await req.json();
-      // ... (toute la logique de auth-telegram reste ici) ...
+      if (!initData) throw new Error('initData manquant');
+
       const urlParams = new URLSearchParams(initData);
       const hash = urlParams.get('hash');
       urlParams.delete('hash');
@@ -45,7 +51,9 @@ async function handler(req: Request): Promise<Response> {
       const UPSERT_USER_PROFILE = `mutation UpsertUserProfile($user: users_insert_input!) { insert_users_one(object: $user, on_conflict: { constraint: users_pkey, update_columns: [] }) { id, balance, display_name } }`;
       const { data } = await nhost.graphql.request(UPSERT_USER_PROFILE, { user: { id: session.user.id, display_name: user.first_name } }, { headers: { 'x-hasura-admin-secret': NHOST_ADMIN_SECRET } });
       
-      return new Response(JSON.stringify({ session, user: data.insert_users_one }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ session, user: data.insert_users_one }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -53,7 +61,6 @@ async function handler(req: Request): Promise<Response> {
 
   // --- ROUTE POUR LIRE LES TÂCHES ---
   if (url.pathname === "/api/get-tasks") {
-    // ... (toute la logique de get-tasks reste ici) ...
     try {
         const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '');
         if (!accessToken) return new Response(JSON.stringify({ error: 'Authentification requise' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
